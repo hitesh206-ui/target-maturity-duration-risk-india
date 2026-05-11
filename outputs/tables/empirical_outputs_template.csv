@@ -1,0 +1,7 @@
+output_id,output_name,status,required_input,notes
+T1,Fund sample and inclusion table,pending,data/processed/fund_master.csv,Shows selected target maturity funds and inclusion rules
+T2,Factsheet duration summary,pending,data/processed/fund_factsheet_metrics.csv,Shows modified duration YTM average maturity and AUM
+T3,Stress-loss scenarios,pending,outputs/tables/stress_loss_scenarios.csv,Estimated NAV impact under rate shocks
+T4,NAV risk metrics,pending,outputs/tables/nav_risk_metrics.csv,Volatility drawdown and downside frequency
+T5,Maturity bucket comparison,pending,data/processed/fund_master.csv and duration_risk_summary.csv,Short medium long maturity comparison
+T6,Disclosure completeness table,pending,data/processed/fund_factsheet_metrics.csv,Shows missing duration YTM AUM and portfolio variables
