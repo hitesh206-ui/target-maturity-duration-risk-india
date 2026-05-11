@@ -1,0 +1,11 @@
+candidate_id,scheme_name,amc,possible_target_year,source_to_check,include_status,notes
+C001,Bharat Bond ETF - April 2030,Edelweiss Mutual Fund,2030,AMC factsheet,pending,Check latest factsheet and NAV history
+C002,Bharat Bond FOF - April 2030,Edelweiss Mutual Fund,2030,AMC factsheet,pending,Check latest factsheet and NAV history
+C003,Bharat Bond ETF - April 2031,Edelweiss Mutual Fund,2031,AMC factsheet,pending,Check latest factsheet and NAV history
+C004,Bharat Bond FOF - April 2031,Edelweiss Mutual Fund,2031,AMC factsheet,pending,Check latest factsheet and NAV history
+C005,ICICI Prudential Nifty SDL Sep 2026 Index Fund,ICICI Prudential Mutual Fund,2026,AMC factsheet,pending,Verify exact scheme name and current availability
+C006,ICICI Prudential Nifty G-Sec Dec 2030 Index Fund,ICICI Prudential Mutual Fund,2030,AMC factsheet,pending,Verify exact scheme name and current availability
+C007,HDFC Nifty G-Sec Jun 2027 Index Fund,HDFC Mutual Fund,2027,AMC factsheet,pending,Verify exact scheme name and current availability
+C008,HDFC Nifty SDL Plus G-Sec Jun 2027 40:60 Index Fund,HDFC Mutual Fund,2027,AMC factsheet,pending,Verify exact scheme name and current availability
+C009,SBI Nifty SDL Sep 2027 Index Fund,SBI Mutual Fund,2027,AMC factsheet,pending,Verify exact scheme name and current availability
+C010,Nippon India Nifty SDL Apr 2026 Top 20 Equal Weight Index Fund,Nippon India Mutual Fund,2026,AMC factsheet,pending,Verify exact scheme name and current availability
