@@ -1,0 +1,47 @@
+name: Update NAV and outputs
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  update-nav-and-outputs:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install pandas requests matplotlib
+
+      - name: Download AMFI NAV history
+        run: |
+          python scripts/download_nav_history_amfi.py
+
+      - name: Run duration analysis
+        run: |
+          python scripts/run_duration_analysis.py
+
+      - name: Run NAV risk metrics
+        run: |
+          python scripts/run_nav_risk_metrics.py
+
+      - name: Generate charts
+        run: |
+          python scripts/generate_charts.py
+
+      - name: Commit generated outputs
+        uses: stefanzweifel/git-auto-commit-action@v5
+        with:
+          commit_message: 'Update NAV history, risk metrics, and charts'
+          file_pattern: 'data/processed/*.csv outputs/tables/*.csv outputs/charts/*.png'
