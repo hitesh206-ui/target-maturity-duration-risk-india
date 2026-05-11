@@ -4,3 +4,6 @@ F002,BHARAT Bond FOF - April 2030,Edelweiss Mutual Fund,Fund of Funds,Nifty BHAR
 F003,BHARAT Bond ETF - April 2031,Edelweiss Mutual Fund,ETF,Nifty BHARAT Bond Index - April 2031,2031,2031-04,CPSE/CPSU/CPFI and government organisations,Yes,Public factsheet initial sample
 F004,ICICI Prudential Nifty G-Sec Dec 2030 Index Fund,ICICI Prudential Mutual Fund,Index Fund,Nifty G-Sec Dec 2030 Index,2030,2030-12,Government securities,Yes,Public digital factsheet initial sample
 F005,HDFC Nifty G-Sec Jun 2027 Index Fund,HDFC Mutual Fund,Index Fund,Nifty G-Sec Jun 2027 Index,2027,2027-06,Government securities,Yes,Public factsheet initial sample; YTM not cleanly parsed in web snippet
+F006,HDFC Nifty SDL Plus G-Sec Jun 2027 40:60 Index Fund,HDFC Mutual Fund,Index Fund,Nifty SDL Plus G-Sec Jun 2027 40:60 Index,2027,2027-06,SDL and Government securities,Yes,Added from public AMC/ET/Moneycontrol pages
+F007,Nippon India ETF Nifty SDL Apr 2026 Top 20 Equal Weight,Nippon India Mutual Fund,ETF,Nifty SDL Apr 2026 Top 20 Equal Weight Index,2026,2026-04,State Development Loans,Yes,Added from public Nippon factsheet page
+F008,Axis CRISIL IBX SDL May 2027 Index Fund,Axis Mutual Fund,Index Fund,CRISIL IBX SDL Index May 2027,2027,2027-05,State Development Loans,Yes,Added from public Axis factsheet page
