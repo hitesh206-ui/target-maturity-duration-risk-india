@@ -1,1 +1,6 @@
 fund_id,scheme_name,amc,scheme_type,benchmark,target_maturity_year,target_maturity_date,asset_class_focus,included_in_study,notes
+F001,BHARAT Bond ETF - April 2030,Edelweiss Mutual Fund,ETF,Nifty BHARAT Bond Index - April 2030,2030,2030-04,CPSE/CPSU/CPFI and government organisations,Yes,Public factsheet initial sample
+F002,BHARAT Bond FOF - April 2030,Edelweiss Mutual Fund,Fund of Funds,Nifty BHARAT Bond Index - April 2030,2030,2030-04,Fund of funds investing in BHARAT Bond ETF - April 2030,Yes,Public factsheet initial sample
+F003,BHARAT Bond ETF - April 2031,Edelweiss Mutual Fund,ETF,Nifty BHARAT Bond Index - April 2031,2031,2031-04,CPSE/CPSU/CPFI and government organisations,Yes,Public factsheet initial sample
+F004,ICICI Prudential Nifty G-Sec Dec 2030 Index Fund,ICICI Prudential Mutual Fund,Index Fund,Nifty G-Sec Dec 2030 Index,2030,2030-12,Government securities,Yes,Public digital factsheet initial sample
+F005,HDFC Nifty G-Sec Jun 2027 Index Fund,HDFC Mutual Fund,Index Fund,Nifty G-Sec Jun 2027 Index,2027,2027-06,Government securities,Yes,Public factsheet initial sample; YTM not cleanly parsed in web snippet
