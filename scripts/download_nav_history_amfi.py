@@ -4,9 +4,9 @@ Outputs:
     data/processed/nav_history.csv
     outputs/tables/nav_match_report.csv
 
-The script is intentionally defensive: if AMFI is temporarily unavailable or a
-scheme does not match cleanly, it writes a report and an empty/template output
-instead of failing before downstream diagnostics can be inspected.
+The AMFI historical NAV file layout can vary. This parser reads fields from the
+right side of each semicolon-delimited row so that scheme name, NAV, and date
+are captured correctly even when extra ISIN columns are present.
 """
 
 from __future__ import annotations
@@ -61,6 +61,34 @@ def month_ranges(start: date, end: date):
         cursor = next_month
 
 
+def parse_amfi_line(parts: list[str], current_amc: str, current_category: str) -> dict | None:
+    """Parse a semicolon-delimited AMFI NAV row.
+
+    Expected AMFI rows contain scheme code first and date last. Some variants
+    contain two ISIN columns; others contain more. Reading from the right avoids
+    mistaking an ISIN for the scheme name.
+    """
+    parts = [p.strip() for p in parts]
+    if len(parts) < 5 or parts[0] == "Scheme Code":
+        return None
+
+    scheme_code = parts[0]
+    date_text = parts[-1]
+    nav_text = parts[-2]
+    scheme_name = parts[-3]
+    isin_fields = parts[1:-3]
+
+    return {
+        "scheme_code": scheme_code,
+        "isin_fields": "|".join(isin_fields),
+        "scheme_name_amfi": scheme_name,
+        "nav": nav_text,
+        "date": date_text,
+        "amc_from_file": current_amc,
+        "category_from_file": current_category,
+    }
+
+
 def fetch_amfi_range(start: date, end: date) -> pd.DataFrame:
     params = {"frmdt": start.strftime("%d-%b-%Y"), "todt": end.strftime("%d-%b-%Y")}
     url = AMFI_URL + "?" + urlencode(params)
@@ -84,31 +112,29 @@ def fetch_amfi_range(start: date, end: date) -> pd.DataFrame:
             else:
                 current_category = line
             continue
-        parts = line.split(";")
-        if len(parts) < 8 or parts[0] == "Scheme Code":
-            continue
-        rows.append(
-            {
-                "scheme_code": parts[0].strip(),
-                "isin_div_payout": parts[1].strip(),
-                "isin_growth": parts[2].strip(),
-                "scheme_name_amfi": parts[3].strip(),
-                "nav": parts[4].strip(),
-                "date": parts[7].strip(),
-                "amc_from_file": current_amc,
-                "category_from_file": current_category,
-            }
-        )
+        parsed = parse_amfi_line(line.split(";"), current_amc, current_category)
+        if parsed is not None:
+            rows.append(parsed)
     if not rows:
         return pd.DataFrame()
     df = pd.DataFrame(rows)
     df["date"] = pd.to_datetime(df["date"], format="%d-%b-%Y", errors="coerce")
     df["nav"] = pd.to_numeric(df["nav"], errors="coerce")
-    return df.dropna(subset=["date", "nav"])
+    return df.dropna(subset=["date", "nav", "scheme_name_amfi"])
 
 
 def normalize(text: str) -> str:
-    return " ".join(str(text).lower().replace("-", " ").replace("&", " and ").replace(":", " ").split())
+    return " ".join(
+        str(text)
+        .lower()
+        .replace("-", " ")
+        .replace("&", " and ")
+        .replace(":", " ")
+        .replace("/", " ")
+        .replace("(", " ")
+        .replace(")", " ")
+        .split()
+    )
 
 
 def score_match(scheme_name: str, search_terms: str) -> int:
@@ -120,18 +146,21 @@ def score_match(scheme_name: str, search_terms: str) -> int:
 def choose_best_match(all_nav: pd.DataFrame, search_terms: str) -> pd.DataFrame:
     candidates = all_nav.copy()
     candidates["match_score"] = candidates["scheme_name_amfi"].apply(lambda x: score_match(x, search_terms))
-    candidates = candidates[candidates["match_score"] > 0]
+    # Require at least 4 matched tokens to reduce false positives.
+    candidates = candidates[candidates["match_score"] >= 4]
     if candidates.empty:
         return pd.DataFrame()
 
-    direct_requested = "direct" in normalize(search_terms)
-    growth_requested = "growth" in normalize(search_terms)
-    candidates["direct_bonus"] = 0
-    candidates["growth_bonus"] = 0
-    if direct_requested:
-        candidates["direct_bonus"] = candidates["scheme_name_amfi"].str.lower().str.contains("direct", na=False).astype(int)
-    if growth_requested:
-        candidates["growth_bonus"] = candidates["scheme_name_amfi"].str.lower().str.contains("growth", na=False).astype(int)
+    terms_norm = normalize(search_terms)
+    direct_requested = "direct" in terms_norm
+    growth_requested = "growth" in terms_norm
+    etf_requested = "etf" in terms_norm
+    fof_requested = "fof" in terms_norm or "fund of fund" in terms_norm
+
+    candidates["direct_bonus"] = candidates["scheme_name_amfi"].str.lower().str.contains("direct", na=False).astype(int) if direct_requested else 0
+    candidates["growth_bonus"] = candidates["scheme_name_amfi"].str.lower().str.contains("growth", na=False).astype(int) if growth_requested else 0
+    candidates["etf_bonus"] = candidates["scheme_name_amfi"].str.lower().str.contains("etf", na=False).astype(int) if etf_requested else 0
+    candidates["fof_bonus"] = candidates["scheme_name_amfi"].str.lower().str.contains("fof|fund of fund", regex=True, na=False).astype(int) if fof_requested else 0
 
     scheme_scores = (
         candidates.groupby(["scheme_code", "scheme_name_amfi"], as_index=False)
@@ -139,9 +168,11 @@ def choose_best_match(all_nav: pd.DataFrame, search_terms: str) -> pd.DataFrame:
             match_score=("match_score", "max"),
             direct_bonus=("direct_bonus", "max"),
             growth_bonus=("growth_bonus", "max"),
+            etf_bonus=("etf_bonus", "max"),
+            fof_bonus=("fof_bonus", "max"),
             rows=("nav", "size"),
         )
-        .sort_values(["match_score", "direct_bonus", "growth_bonus", "rows"], ascending=False)
+        .sort_values(["match_score", "direct_bonus", "growth_bonus", "etf_bonus", "fof_bonus", "rows"], ascending=False)
     )
     best = scheme_scores.iloc[0]
     return all_nav[all_nav["scheme_code"].astype(str) == str(best["scheme_code"])].copy()
@@ -171,9 +202,7 @@ def main() -> None:
 
     if not all_months:
         for _, row in nav_map.iterrows():
-            reports.append(
-                MatchResult(str(row["fund_id"]), str(row["scheme_name"]), str(row["amfi_search_terms"]), "amfi_unavailable", message="No AMFI NAV data returned")
-            )
+            reports.append(MatchResult(str(row["fund_id"]), str(row["scheme_name"]), str(row["amfi_search_terms"]), "amfi_unavailable", message="No AMFI NAV data returned"))
         write_outputs(frames, reports)
         print("No AMFI NAV data returned; wrote empty NAV output and report.")
         return
