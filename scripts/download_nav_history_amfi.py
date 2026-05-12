@@ -1,22 +1,18 @@
 """Download and standardize NAV history from AMFI text archives.
 
-This script is designed for reproducible NAV collection. It uses the public AMFI
-NAV history endpoint, searches scheme names from `nav_collection_map.csv`, and
-writes standardized NAV observations.
-
-Important:
-    AMFI scheme-name matching can be messy. Always review the match report before
-    using the NAV data in the paper.
-
 Outputs:
     data/processed/nav_history.csv
     outputs/tables/nav_match_report.csv
+
+The script is intentionally defensive: if AMFI is temporarily unavailable or a
+scheme does not match cleanly, it writes a report and an empty/template output
+instead of failing before downstream diagnostics can be inspected.
 """
 
 from __future__ import annotations
 
 from dataclasses import dataclass
-from datetime import date, datetime, timedelta
+from datetime import date, timedelta
 from pathlib import Path
 from urllib.parse import urlencode
 
@@ -27,13 +23,21 @@ ROOT = Path(__file__).resolve().parents[1]
 MAP_FILE = ROOT / "data" / "documentation" / "nav_collection_map.csv"
 NAV_OUTPUT = ROOT / "data" / "processed" / "nav_history.csv"
 REPORT_OUTPUT = ROOT / "outputs" / "tables" / "nav_match_report.csv"
-
-# AMFI historical NAV endpoint.
 AMFI_URL = "https://portal.amfiindia.com/DownloadNAVHistoryReport_Po.aspx"
-
-# Keep first run manageable. Increase after validating scheme matching.
 START_DATE = date(2024, 1, 1)
 END_DATE = date.today()
+
+NAV_COLUMNS = ["fund_id", "scheme_name", "date", "nav", "source_id", "notes"]
+REPORT_COLUMNS = [
+    "fund_id",
+    "scheme_name",
+    "search_terms",
+    "status",
+    "matched_scheme_name",
+    "matched_scheme_code",
+    "rows",
+    "message",
+]
 
 
 @dataclass
@@ -58,23 +62,23 @@ def month_ranges(start: date, end: date):
 
 
 def fetch_amfi_range(start: date, end: date) -> pd.DataFrame:
-    params = {
-        "frmdt": start.strftime("%d-%b-%Y"),
-        "todt": end.strftime("%d-%b-%Y"),
-    }
+    params = {"frmdt": start.strftime("%d-%b-%Y"), "todt": end.strftime("%d-%b-%Y")}
     url = AMFI_URL + "?" + urlencode(params)
-    response = requests.get(url, timeout=60)
-    response.raise_for_status()
-    text = response.text
+    try:
+        response = requests.get(url, timeout=60, headers={"User-Agent": "Mozilla/5.0"})
+        response.raise_for_status()
+    except Exception as exc:
+        print(f"AMFI request failed for {start} to {end}: {exc}")
+        return pd.DataFrame()
+
     rows = []
     current_amc = ""
     current_category = ""
-    for line in text.splitlines():
+    for line in response.text.splitlines():
         line = line.strip()
         if not line:
             continue
         if ";" not in line:
-            # Header/category/amc lines are not always consistently marked.
             if "Mutual Fund" in line or "Asset Management" in line:
                 current_amc = line
             else:
@@ -104,7 +108,7 @@ def fetch_amfi_range(start: date, end: date) -> pd.DataFrame:
 
 
 def normalize(text: str) -> str:
-    return " ".join(str(text).lower().replace("-", " ").replace("&", " and ").split())
+    return " ".join(str(text).lower().replace("-", " ").replace("&", " and ").replace(":", " ").split())
 
 
 def score_match(scheme_name: str, search_terms: str) -> int:
@@ -119,42 +123,62 @@ def choose_best_match(all_nav: pd.DataFrame, search_terms: str) -> pd.DataFrame:
     candidates = candidates[candidates["match_score"] > 0]
     if candidates.empty:
         return pd.DataFrame()
-    # Prefer direct growth/growth matches when specified in search terms.
+
     direct_requested = "direct" in normalize(search_terms)
     growth_requested = "growth" in normalize(search_terms)
+    candidates["direct_bonus"] = 0
+    candidates["growth_bonus"] = 0
     if direct_requested:
-        candidates["direct_bonus"] = candidates["scheme_name_amfi"].str.lower().str.contains("direct").astype(int)
-    else:
-        candidates["direct_bonus"] = 0
+        candidates["direct_bonus"] = candidates["scheme_name_amfi"].str.lower().str.contains("direct", na=False).astype(int)
     if growth_requested:
-        candidates["growth_bonus"] = candidates["scheme_name_amfi"].str.lower().str.contains("growth").astype(int)
-    else:
-        candidates["growth_bonus"] = 0
+        candidates["growth_bonus"] = candidates["scheme_name_amfi"].str.lower().str.contains("growth", na=False).astype(int)
+
     scheme_scores = (
         candidates.groupby(["scheme_code", "scheme_name_amfi"], as_index=False)
-        .agg(match_score=("match_score", "max"), direct_bonus=("direct_bonus", "max"), growth_bonus=("growth_bonus", "max"), rows=("nav", "size"))
+        .agg(
+            match_score=("match_score", "max"),
+            direct_bonus=("direct_bonus", "max"),
+            growth_bonus=("growth_bonus", "max"),
+            rows=("nav", "size"),
+        )
         .sort_values(["match_score", "direct_bonus", "growth_bonus", "rows"], ascending=False)
     )
     best = scheme_scores.iloc[0]
-    return all_nav[all_nav["scheme_code"] == best["scheme_code"]].copy()
+    return all_nav[all_nav["scheme_code"].astype(str) == str(best["scheme_code"])].copy()
+
+
+def write_outputs(frames: list[pd.DataFrame], reports: list[MatchResult]) -> None:
+    NAV_OUTPUT.parent.mkdir(parents=True, exist_ok=True)
+    REPORT_OUTPUT.parent.mkdir(parents=True, exist_ok=True)
+    if frames:
+        pd.concat(frames, ignore_index=True)[NAV_COLUMNS].to_csv(NAV_OUTPUT, index=False)
+    else:
+        pd.DataFrame(columns=NAV_COLUMNS).to_csv(NAV_OUTPUT, index=False)
+    pd.DataFrame([r.__dict__ for r in reports], columns=REPORT_COLUMNS).to_csv(REPORT_OUTPUT, index=False)
 
 
 def main() -> None:
     nav_map = pd.read_csv(MAP_FILE)
-    frames = []
     reports: list[MatchResult] = []
+    frames: list[pd.DataFrame] = []
 
-    print("Downloading AMFI monthly NAV history...")
     all_months = []
     for start, end in month_ranges(START_DATE, END_DATE):
-        print(f"  {start} to {end}")
+        print(f"Downloading AMFI NAV: {start} to {end}")
         month_df = fetch_amfi_range(start, end)
         if not month_df.empty:
             all_months.append(month_df)
-    if not all_months:
-        raise RuntimeError("No AMFI NAV data returned.")
-    all_nav = pd.concat(all_months, ignore_index=True).drop_duplicates()
 
+    if not all_months:
+        for _, row in nav_map.iterrows():
+            reports.append(
+                MatchResult(str(row["fund_id"]), str(row["scheme_name"]), str(row["amfi_search_terms"]), "amfi_unavailable", message="No AMFI NAV data returned")
+            )
+        write_outputs(frames, reports)
+        print("No AMFI NAV data returned; wrote empty NAV output and report.")
+        return
+
+    all_nav = pd.concat(all_months, ignore_index=True).drop_duplicates()
     for _, row in nav_map.iterrows():
         fund_id = str(row["fund_id"])
         scheme_name = str(row["scheme_name"])
@@ -176,25 +200,9 @@ def main() -> None:
             }
         )
         frames.append(out)
-        reports.append(
-            MatchResult(
-                fund_id=fund_id,
-                scheme_name=scheme_name,
-                search_terms=search_terms,
-                status="matched",
-                matched_scheme_name=matched_scheme_name,
-                matched_scheme_code=matched_scheme_code,
-                rows=int(out.shape[0]),
-            )
-        )
+        reports.append(MatchResult(fund_id, scheme_name, search_terms, "matched", matched_scheme_name, matched_scheme_code, int(out.shape[0])))
 
-    NAV_OUTPUT.parent.mkdir(parents=True, exist_ok=True)
-    REPORT_OUTPUT.parent.mkdir(parents=True, exist_ok=True)
-    if frames:
-        pd.concat(frames, ignore_index=True).to_csv(NAV_OUTPUT, index=False)
-    else:
-        pd.DataFrame(columns=["fund_id", "scheme_name", "date", "nav", "source_id", "notes"]).to_csv(NAV_OUTPUT, index=False)
-    pd.DataFrame([r.__dict__ for r in reports]).to_csv(REPORT_OUTPUT, index=False)
+    write_outputs(frames, reports)
     print(f"Wrote {NAV_OUTPUT}")
     print(f"Wrote {REPORT_OUTPUT}")
 
