@@ -1,0 +1,9 @@
+fund_id,scheme_name,search_terms,status,matched_scheme_name,matched_scheme_code,rows,message
+F001,BHARAT Bond ETF - April 2030,BHARAT Bond ETF April 2030,no_match,,,0,No AMFI scheme match
+F002,BHARAT Bond FOF - April 2030,BHARAT Bond FOF April 2030 Direct Growth,no_match,,,0,No AMFI scheme match
+F003,BHARAT Bond ETF - April 2031,BHARAT Bond ETF April 2031,no_match,,,0,No AMFI scheme match
+F004,ICICI Prudential Nifty G-Sec Dec 2030 Index Fund,ICICI Prudential Nifty G-Sec Dec 2030 Index Fund Direct Growth,matched,INF789F01PG3,102010,862,
+F005,HDFC Nifty G-Sec Jun 2027 Index Fund,HDFC Nifty G-Sec Jun 2027 Index Fund Direct Growth,matched,HDFCNIVODG,152713,452,
+F006,HDFC Nifty SDL Plus G-Sec Jun 2027 40:60 Index Fund,HDFC Nifty SDL Plus G-Sec Jun 2027 40 60 Index Fund Direct Growth,matched,INF740K01AG8,101306,569,
+F007,Nippon India ETF Nifty SDL Apr 2026 Top 20 Equal Weight,Nippon India ETF Nifty SDL Apr 2026 Top 20 Equal Weight,matched,INF209K01KN9,100041,862,
+F008,Axis CRISIL IBX SDL May 2027 Index Fund,Axis CRISIL IBX SDL May 2027 Index Fund Direct Growth,no_match,,,0,No AMFI scheme match
