@@ -29,20 +29,49 @@ PROCESSED_DIR = ROOT / "data" / "processed"
 RISK_FILE = OUTPUT_DIR / "nav_risk_metrics.csv"
 RETURNS_FILE = PROCESSED_DIR / "nav_returns.csv"
 
+RETURNS_COLUMNS = ["fund_id", "scheme_name", "date", "nav", "source_id", "notes", "return"]
+RISK_COLUMNS = [
+    "fund_id",
+    "scheme_name",
+    "start_date",
+    "end_date",
+    "observations",
+    "annualized_volatility",
+    "maximum_drawdown",
+    "worst_monthly_return",
+    "downside_month_frequency",
+]
+
+
+def write_empty_outputs() -> None:
+    OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
+    PROCESSED_DIR.mkdir(parents=True, exist_ok=True)
+    pd.DataFrame(columns=RETURNS_COLUMNS).to_csv(RETURNS_FILE, index=False)
+    pd.DataFrame(columns=RISK_COLUMNS).to_csv(RISK_FILE, index=False)
+
 
 def main() -> None:
     if not INPUT_FILE.exists():
-        raise FileNotFoundError(f"Missing input file: {INPUT_FILE}")
+        write_empty_outputs()
+        print(f"Missing input file: {INPUT_FILE}. Wrote empty NAV risk outputs.")
+        return
 
     df = pd.read_csv(INPUT_FILE)
     required = {"fund_id", "scheme_name", "date", "nav"}
     missing = required - set(df.columns)
     if missing:
-        raise ValueError(f"Missing required columns: {sorted(missing)}")
+        write_empty_outputs()
+        print(f"Missing required columns: {sorted(missing)}. Wrote empty NAV risk outputs.")
+        return
 
     df["date"] = pd.to_datetime(df["date"], errors="coerce")
     df["nav"] = pd.to_numeric(df["nav"], errors="coerce")
     df = df.dropna(subset=["fund_id", "date", "nav"]).sort_values(["fund_id", "date"])
+
+    if df.empty:
+        write_empty_outputs()
+        print("NAV history is empty after cleaning. Wrote empty NAV risk outputs.")
+        return
 
     returns_frames = []
     risk_rows = []
@@ -72,7 +101,7 @@ def main() -> None:
     OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
     PROCESSED_DIR.mkdir(parents=True, exist_ok=True)
     pd.concat(returns_frames, ignore_index=True).to_csv(RETURNS_FILE, index=False)
-    pd.DataFrame(risk_rows).to_csv(RISK_FILE, index=False)
+    pd.DataFrame(risk_rows, columns=RISK_COLUMNS).to_csv(RISK_FILE, index=False)
     print(f"Wrote {RETURNS_FILE}")
     print(f"Wrote {RISK_FILE}")
 
