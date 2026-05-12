@@ -4,9 +4,12 @@ Outputs:
     data/processed/nav_history.csv
     outputs/tables/nav_match_report.csv
 
-The AMFI historical NAV file layout can vary. This parser reads fields from the
-right side of each semicolon-delimited row so that scheme name, NAV, and date
-are captured correctly even when extra ISIN columns are present.
+AMFI historical NAV rows usually follow this layout:
+    Scheme Code;Scheme Name;ISIN Div Payout/ISIN Growth;ISIN Div Reinvestment;
+    Net Asset Value;Repurchase Price;Sale Price;Date
+
+The parser below uses that layout and falls back defensively when extra fields
+appear.
 """
 
 from __future__ import annotations
@@ -28,16 +31,7 @@ START_DATE = date(2024, 1, 1)
 END_DATE = date.today()
 
 NAV_COLUMNS = ["fund_id", "scheme_name", "date", "nav", "source_id", "notes"]
-REPORT_COLUMNS = [
-    "fund_id",
-    "scheme_name",
-    "search_terms",
-    "status",
-    "matched_scheme_name",
-    "matched_scheme_code",
-    "rows",
-    "message",
-]
+REPORT_COLUMNS = ["fund_id", "scheme_name", "search_terms", "status", "matched_scheme_name", "matched_scheme_code", "rows", "message"]
 
 
 @dataclass
@@ -62,21 +56,18 @@ def month_ranges(start: date, end: date):
 
 
 def parse_amfi_line(parts: list[str], current_amc: str, current_category: str) -> dict | None:
-    """Parse a semicolon-delimited AMFI NAV row.
-
-    Expected AMFI rows contain scheme code first and date last. Some variants
-    contain two ISIN columns; others contain more. Reading from the right avoids
-    mistaking an ISIN for the scheme name.
-    """
     parts = [p.strip() for p in parts]
-    if len(parts) < 5 or parts[0] == "Scheme Code":
+    if len(parts) < 8 or parts[0] == "Scheme Code":
         return None
 
+    # Standard AMFI layout:
+    # 0 Scheme Code, 1 Scheme Name, 2 ISIN Div/ISIN Growth, 3 ISIN Reinvestment,
+    # 4 NAV, 5 Repurchase, 6 Sale, 7 Date
     scheme_code = parts[0]
+    scheme_name = parts[1]
+    nav_text = parts[4]
     date_text = parts[-1]
-    nav_text = parts[-2]
-    scheme_name = parts[-3]
-    isin_fields = parts[1:-3]
+    isin_fields = parts[2:4]
 
     return {
         "scheme_code": scheme_code,
@@ -90,7 +81,9 @@ def parse_amfi_line(parts: list[str], current_amc: str, current_category: str) -
 
 
 def fetch_amfi_range(start: date, end: date) -> pd.DataFrame:
-    params = {"frmdt": start.strftime("%d-%b-%Y"), "todt": end.strftime("%d-%b-%Y")}
+    # AMFI examples often include tp=1, and the portal says historical NAV can
+    # be downloaded for up to 90 days at a time. Monthly chunks are safe.
+    params = {"tp": "1", "frmdt": start.strftime("%d-%b-%Y"), "todt": end.strftime("%d-%b-%Y")}
     url = AMFI_URL + "?" + urlencode(params)
     try:
         response = requests.get(url, timeout=60, headers={"User-Agent": "Mozilla/5.0"})
@@ -124,17 +117,7 @@ def fetch_amfi_range(start: date, end: date) -> pd.DataFrame:
 
 
 def normalize(text: str) -> str:
-    return " ".join(
-        str(text)
-        .lower()
-        .replace("-", " ")
-        .replace("&", " and ")
-        .replace(":", " ")
-        .replace("/", " ")
-        .replace("(", " ")
-        .replace(")", " ")
-        .split()
-    )
+    return " ".join(str(text).lower().replace("-", " ").replace("&", " and ").replace(":", " ").replace("/", " ").replace("(", " ").replace(")", " ").split())
 
 
 def score_match(scheme_name: str, search_terms: str) -> int:
@@ -146,7 +129,6 @@ def score_match(scheme_name: str, search_terms: str) -> int:
 def choose_best_match(all_nav: pd.DataFrame, search_terms: str) -> pd.DataFrame:
     candidates = all_nav.copy()
     candidates["match_score"] = candidates["scheme_name_amfi"].apply(lambda x: score_match(x, search_terms))
-    # Require at least 4 matched tokens to reduce false positives.
     candidates = candidates[candidates["match_score"] >= 4]
     if candidates.empty:
         return pd.DataFrame()
@@ -162,18 +144,15 @@ def choose_best_match(all_nav: pd.DataFrame, search_terms: str) -> pd.DataFrame:
     candidates["etf_bonus"] = candidates["scheme_name_amfi"].str.lower().str.contains("etf", na=False).astype(int) if etf_requested else 0
     candidates["fof_bonus"] = candidates["scheme_name_amfi"].str.lower().str.contains("fof|fund of fund", regex=True, na=False).astype(int) if fof_requested else 0
 
-    scheme_scores = (
-        candidates.groupby(["scheme_code", "scheme_name_amfi"], as_index=False)
-        .agg(
-            match_score=("match_score", "max"),
-            direct_bonus=("direct_bonus", "max"),
-            growth_bonus=("growth_bonus", "max"),
-            etf_bonus=("etf_bonus", "max"),
-            fof_bonus=("fof_bonus", "max"),
-            rows=("nav", "size"),
-        )
-        .sort_values(["match_score", "direct_bonus", "growth_bonus", "etf_bonus", "fof_bonus", "rows"], ascending=False)
-    )
+    scheme_scores = candidates.groupby(["scheme_code", "scheme_name_amfi"], as_index=False).agg(
+        match_score=("match_score", "max"),
+        direct_bonus=("direct_bonus", "max"),
+        growth_bonus=("growth_bonus", "max"),
+        etf_bonus=("etf_bonus", "max"),
+        fof_bonus=("fof_bonus", "max"),
+        rows=("nav", "size"),
+    ).sort_values(["match_score", "direct_bonus", "growth_bonus", "etf_bonus", "fof_bonus", "rows"], ascending=False)
+
     best = scheme_scores.iloc[0]
     return all_nav[all_nav["scheme_code"].astype(str) == str(best["scheme_code"])].copy()
 
@@ -218,16 +197,14 @@ def main() -> None:
             continue
         matched_scheme_name = matched["scheme_name_amfi"].iloc[0]
         matched_scheme_code = str(matched["scheme_code"].iloc[0])
-        out = pd.DataFrame(
-            {
-                "fund_id": fund_id,
-                "scheme_name": scheme_name,
-                "date": matched["date"].dt.date,
-                "nav": matched["nav"],
-                "source_id": "AMFI_NAV_HISTORY",
-                "notes": "AMFI matched scheme: " + matched_scheme_name + " | code: " + matched_scheme_code,
-            }
-        )
+        out = pd.DataFrame({
+            "fund_id": fund_id,
+            "scheme_name": scheme_name,
+            "date": matched["date"].dt.date,
+            "nav": matched["nav"],
+            "source_id": "AMFI_NAV_HISTORY",
+            "notes": "AMFI matched scheme: " + matched_scheme_name + " | code: " + matched_scheme_code,
+        })
         frames.append(out)
         reports.append(MatchResult(fund_id, scheme_name, search_terms, "matched", matched_scheme_name, matched_scheme_code, int(out.shape[0])))
 
