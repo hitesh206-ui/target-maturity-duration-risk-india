@@ -6,6 +6,10 @@ Inputs:
 Outputs:
     outputs/tables/nav_risk_metrics.csv
     data/processed/nav_returns.csv
+
+Note:
+    AMFI NAV history is daily/near-daily. The output therefore labels downside
+    statistics as daily observations, not monthly observations.
 """
 
 from __future__ import annotations
@@ -38,8 +42,8 @@ RISK_COLUMNS = [
     "observations",
     "annualized_volatility",
     "maximum_drawdown",
-    "worst_monthly_return",
-    "downside_month_frequency",
+    "worst_daily_return",
+    "downside_day_frequency",
 ]
 
 
@@ -91,10 +95,10 @@ def main() -> None:
                 "start_date": group["date"].min().date(),
                 "end_date": group["date"].max().date(),
                 "observations": int(group.shape[0]),
-                "annualized_volatility": annualized_volatility(returns, periods_per_year=12),
+                "annualized_volatility": annualized_volatility(returns, periods_per_year=252),
                 "maximum_drawdown": maximum_drawdown(nav),
-                "worst_monthly_return": worst_period_return(returns),
-                "downside_month_frequency": downside_month_frequency(returns),
+                "worst_daily_return": worst_period_return(returns),
+                "downside_day_frequency": downside_month_frequency(returns),
             }
         )
 
