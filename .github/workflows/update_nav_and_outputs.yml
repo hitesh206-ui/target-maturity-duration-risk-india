@@ -26,19 +26,19 @@ jobs:
 
       - name: Download AMFI NAV history
         run: |
-          python scripts/download_nav_history_amfi.py
+          PYTHONPATH=. python scripts/download_nav_history_amfi.py
 
       - name: Run duration analysis
         run: |
-          python scripts/run_duration_analysis.py
+          PYTHONPATH=. python scripts/run_duration_analysis.py
 
       - name: Run NAV risk metrics
         run: |
-          python scripts/run_nav_risk_metrics.py
+          PYTHONPATH=. python scripts/run_nav_risk_metrics.py
 
       - name: Generate charts
         run: |
-          python scripts/generate_charts.py
+          PYTHONPATH=. python scripts/generate_charts.py
 
       - name: Commit generated outputs
         uses: stefanzweifel/git-auto-commit-action@v5
