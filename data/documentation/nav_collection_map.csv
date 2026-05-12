@@ -1,9 +1,9 @@
 fund_id,scheme_name,preferred_plan_option,amfi_search_terms,include_status,notes
-F001,BHARAT Bond ETF - April 2030,Growth,BHARAT Bond ETF April 2030,include,ETF NAV/price series may need AMFI or exchange source cross-check
-F002,BHARAT Bond FOF - April 2030,Direct Growth,BHARAT Bond FOF April 2030 Direct Growth,include,Prefer Direct Growth NAV if AMFI matching is clean
-F003,BHARAT Bond ETF - April 2031,Growth,BHARAT Bond ETF April 2031,include,ETF NAV/price series may need AMFI or exchange source cross-check
+F001,BHARAT Bond ETF - April 2030,Growth,Edelweiss BHARAT Bond ETF April 2030,include,ETF NAV may be listed with Edelweiss prefix in AMFI
+F002,BHARAT Bond FOF - April 2030,Direct Growth,Edelweiss BHARAT Bond FOF April 2030 Direct Growth,include,Prefer Direct Growth NAV if AMFI matching is clean
+F003,BHARAT Bond ETF - April 2031,Growth,Edelweiss BHARAT Bond ETF April 2031,include,ETF NAV may be listed with Edelweiss prefix in AMFI
 F004,ICICI Prudential Nifty G-Sec Dec 2030 Index Fund,Direct Growth,ICICI Prudential Nifty G-Sec Dec 2030 Index Fund Direct Growth,include,Prefer Direct Growth NAV
 F005,HDFC Nifty G-Sec Jun 2027 Index Fund,Direct Growth,HDFC Nifty G-Sec Jun 2027 Index Fund Direct Growth,include,Prefer Direct Growth NAV
 F006,HDFC Nifty SDL Plus G-Sec Jun 2027 40:60 Index Fund,Direct Growth,HDFC Nifty SDL Plus G-Sec Jun 2027 40 60 Index Fund Direct Growth,include,Prefer Direct Growth NAV
 F007,Nippon India ETF Nifty SDL Apr 2026 Top 20 Equal Weight,Growth,Nippon India ETF Nifty SDL Apr 2026 Top 20 Equal Weight,include,ETF NAV/price series may need AMFI or exchange source cross-check
-F008,Axis CRISIL IBX SDL May 2027 Index Fund,Direct Growth,Axis CRISIL IBX SDL May 2027 Index Fund Direct Growth,include,Prefer Direct Growth NAV
+F008,Axis CRISIL IBX SDL May 2027 Index Fund,Direct Growth,Axis CRISIL IBX SDL May 2027 Direct Growth,include,Shortened search terms to improve AMFI matching
