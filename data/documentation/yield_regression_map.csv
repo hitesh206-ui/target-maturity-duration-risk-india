@@ -1,0 +1,9 @@
+fund_id,scheme_name,matched_tenor_years,preferred_yield_source,regression_status,notes
+F001,BHARAT Bond ETF - April 2030,5,RBI_DBIE_OR_CCIL,pending,Approximate tenor mapping based on residual maturity around 2030 vintage
+F002,BHARAT Bond FOF - April 2030,5,RBI_DBIE_OR_CCIL,pending,Use same tenor as underlying ETF for ETF-vs-FOF puzzle
+F003,BHARAT Bond ETF - April 2031,5,RBI_DBIE_OR_CCIL,pending,Approximate tenor mapping based on residual maturity around 2031 vintage
+F004,ICICI Prudential Nifty G-Sec Dec 2030 Index Fund,5,RBI_DBIE_OR_CCIL,pending,Use 5Y G-Sec proxy unless exact maturity zero-coupon yield is available
+F005,HDFC Nifty G-Sec Jun 2027 Index Fund,1,RBI_DBIE_OR_CCIL,pending,Short residual maturity; use 1Y/2Y proxy depending available public data
+F006,HDFC Nifty SDL Plus G-Sec Jun 2027 40:60 Index Fund,1,RBI_DBIE_OR_CCIL,pending,Short residual maturity; use 1Y/2Y proxy depending available public data
+F007,Nippon India ETF Nifty SDL Apr 2026 Top 20 Equal Weight,0.25,RBI_DBIE_OR_CCIL,pending,Near-maturity instrument; regression may be unstable or excluded
+F008,Axis CRISIL IBX SDL May 2027 Index Fund,1,RBI_DBIE_OR_CCIL,pending,Short residual maturity; use 1Y/2Y proxy depending available public data
