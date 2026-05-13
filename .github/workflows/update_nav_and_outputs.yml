@@ -32,6 +32,10 @@ jobs:
         run: |
           python scripts/download_nav_history_amfi.py
 
+      - name: Download G-Sec yield history
+        run: |
+          python scripts/download_gsec_yields_te.py
+
       - name: Run duration analysis
         run: |
           python scripts/run_duration_analysis.py
@@ -51,5 +55,5 @@ jobs:
       - name: Commit generated outputs
         uses: stefanzweifel/git-auto-commit-action@v5
         with:
-          commit_message: 'Update NAV history, risk metrics, regressions, and charts'
+          commit_message: 'Update NAV history, G-Sec yields, regressions, risk metrics, and charts'
           file_pattern: 'data/processed/*.csv outputs/tables/*.csv outputs/charts/*.png'
