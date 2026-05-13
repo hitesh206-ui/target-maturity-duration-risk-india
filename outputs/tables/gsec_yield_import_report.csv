@@ -1,0 +1,6 @@
+file,tenor_years,status,rows,message
+india_3m_yield.csv,0.25,missing_optional,0,File not found
+india_1y_yield.csv,1.0,ok,582,
+india_2y_yield.csv,2.0,missing_optional,0,File not found
+india_3y_yield.csv,3.0,missing_optional,0,File not found
+india_5y_yield.csv,5.0,ok,572,
