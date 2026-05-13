@@ -37,7 +37,11 @@ jobs:
         run: |
           python scripts/download_gsec_yields_te.py
 
-      - name: Import manually uploaded G-Sec yield CSVs if present
+      - name: Import CCIL NSS curve wide CSV if present
+        run: |
+          python scripts/import_ccil_curve_wide.py
+
+      - name: Import manually uploaded tenor-specific G-Sec yield CSVs if present
         run: |
           python scripts/import_manual_gsec_yields.py
 
