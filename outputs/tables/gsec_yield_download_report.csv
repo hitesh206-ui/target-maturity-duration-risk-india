@@ -1,0 +1,6 @@
+symbol,tenor_years,status,rows,message
+GIND3M:IND,0.25,failed,0,410 Client Error: Gone for url: https://api.tradingeconomics.com/markets/historical/GIND3M:IND?c=guest%3Aguest&d1=2024-01-01&d2=2026-05-13&f=json
+GIND52W:IND,1.0,failed,0,410 Client Error: Gone for url: https://api.tradingeconomics.com/markets/historical/GIND52W:IND?c=guest%3Aguest&d1=2024-01-01&d2=2026-05-13&f=json
+GIND2Y:IND,2.0,failed,0,410 Client Error: Gone for url: https://api.tradingeconomics.com/markets/historical/GIND2Y:IND?c=guest%3Aguest&d1=2024-01-01&d2=2026-05-13&f=json
+GIND3Y:IND,3.0,failed,0,410 Client Error: Gone for url: https://api.tradingeconomics.com/markets/historical/GIND3Y:IND?c=guest%3Aguest&d1=2024-01-01&d2=2026-05-13&f=json
+GIND5Y:IND,5.0,failed,0,410 Client Error: Gone for url: https://api.tradingeconomics.com/markets/historical/GIND5Y:IND?c=guest%3Aguest&d1=2024-01-01&d2=2026-05-13&f=json
