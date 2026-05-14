@@ -12,8 +12,13 @@ Outputs:
 Model:
     fund_return_t = alpha + beta * delta_yield_t + error_t
 
-If delta_yield_t is expressed in decimal yield units, realized duration is
-approximately -beta.
+Unit convention:
+    The stored yield series is in percent form (for example, 7.05 for 7.05%).
+    The script converts this to decimal form before differencing:
+        yield_decimal = yield_percent / 100
+        delta_yield_decimal = diff(yield_decimal)
+    Therefore, a +100 basis point move is coded as 0.01.
+    Under this convention, realized duration is approximately -beta.
 """
 
 from __future__ import annotations
